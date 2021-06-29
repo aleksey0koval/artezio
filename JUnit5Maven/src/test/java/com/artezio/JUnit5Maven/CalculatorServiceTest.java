@@ -1,5 +1,6 @@
 package com.artezio.JUnit5Maven;
 
+import com.artezio.JUnit5Maven.service.CalculatorService;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -42,7 +43,7 @@ class CalculatorServiceTest {
     }
 
     @Test
-    public void testDivideWillThrowExceptionWhenDivideOnZero() {
+    public void divideOnZero() {
         CalculatorService calculator = new CalculatorService();
         double result = calculator.divide(6, 0);
         System.out.println(result);

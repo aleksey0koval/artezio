@@ -1,4 +1,4 @@
-package com.artezio.JUnit5Maven;
+package com.artezio.JUnit5Maven.service;
 
 public class CalculatorService {
     public double sum(int a, int b) {
