@@ -1,0 +1,195 @@
+= Default и Static методы в интерфейсах
+
+Начиная с *Java 8* появилась возможность добавлять неабстрактные реализации методов в *интерфейсах* с помощью ключевых слов `default` и `static`.
+
+Основная причина введения *default* и *static* методов является обратная совместимость, то есть, если в *интерфейс* добавиться *новый метод*, то чтобы не было необходимости переписывать код во всех библиотеках, которые его используют.
+
+Также, одной из основных причин внедрения методов по умолчанию является возможность коллекций в *Java 8* использовать *лямбда-выражения.*
+
+== Default методы в интерфейсах
+
+Как было сказано выше, *default методы* позволяют добавлять новые функциональные возможности в интерфейсы библиотек и обеспечивать двоичную совместимость с кодом, написанным для более старых версий этих интерфейсов.
+
+Другими словами, *default методы* - это методы, которые имеют реализацию.
+
+Для того чтобы создать в *интерфейсе* *default метод* необходимо использовать ключевое слово `default`:
+
+[source,java]
+----
+interface A {
+    default void showDefault() {
+        System.out.println("default show()");
+    }
+}
+----
+
+[source,java]
+----
+class B implements A {
+    public void showDefault() {
+        A.super.showDefault();
+    }
+}
+----
+
+//Или же
+
+[source,java]
+----
+public class B implements A {
+}
+----
+
+[source,java]
+----
+public class Main {
+    public static void main(String[] args) {
+        A obj = new B();
+        obj.showDefault();
+    }
+}
+----
+
+При *наследовании* (*расширении*) интерфейса, который содержит *default метод* можно выполнить следующие действия:
+
+* *default метод* можно не указывать (переопределить), так как он  наследуется по умолчанию
+
+[source,java]
+----
+interface A {
+    default void showDefault() {
+        System.out.println("A: default method show()");
+    }
+}
+----
+
+[source,java]
+----
+interface B extends A {
+}
+----
+
+* можно *default метод* сделать *абстрактным*
+
+[source,java]
+----
+interface A {
+    default void showDefault() {
+        System.out.println("A: default method show()");
+    }
+}
+----
+
+[source,java]
+----
+interface B extends A {
+    void showDefault();
+}
+----
+
+* переопределить метод
+
+[source,java]
+----
+interface A {
+    default void showDefault() {
+        System.out.println("A: default method show()");
+    }
+}
+----
+
+[source,java]
+----
+interface B extends A {
+    default void showDefault() {
+        System.out.println("B: default method show()");
+    }
+}
+----
+
+Класс, который реализует интерфейс с *default методом* будет использовать реализацию, заданную в этом интерфейсе.
+
+В случае, если класс реализует два интерфейса у которых одинаковая сигнатура метода, то в этом случае в классе необходимо явно этот метод переопределить.
+
+[source,java]
+----
+interface A {
+    default void showDefault() {
+        System.out.println("A: default method show()");
+    }
+}
+----
+
+[source,java]
+----
+interface B {
+    default void showDefault() {
+        System.out.println("B: default method show()");
+    }
+}
+----
+
+[source,java]
+----
+public class C implements A, B {
+    public void showDefault() {
+        System.out.println("C: override method show()");
+    }
+}
+----
+
+В случае, если класс одновременно реализует интерфейс с *default методом*, а также наследует класс с такой же сигнатурой, то никаких проблем в этом случае нету
+
+[source,java]
+----
+interface A {
+    default void showDefault() {
+        System.out.println("A: default method show()");
+    }
+}
+----
+
+[source,java]
+----
+public class B {
+    public void showDefault() {
+        System.out.println("B: method show()");
+    }
+}
+----
+
+[source,java]
+----
+public class C extends B implements A {
+}
+----
+
+== Static методы в интерфейсах
+
+В дополнение к *default методом* можно определять *static методы в интерфейсах*.
+
+*Static методы интерфейса* похожи на *default методом*, за исключением того, что для них отсутствует возможность *переопределения* в классах, реализующих интерфейс.
+
+*Static методы в интерфейсе* используются для обеспечения вспомогательных методов, например, проверки на null, сортировки коллекций и т.д.
+
+*Static метод* — это метод, который (в данном случае) связан с интерфейсом, в котором он определен, а не с каким-либо объектом. Каждый экземпляр класса имеет общие статические методы. Это упрощает организацию вспомогательных методов в библиотеках; статические методы, специфичные для интерфейса, можно хранить в том же интерфейсе, а не в отдельном классе.
+
+Для того чтобы создать в *интерфейсе* *static метод* необходимо использовать ключевое слово *static*:
+
+[source,java]
+----
+interface A {
+    static void show() {
+        System.out.println("static show()");
+    }
+}
+----
+
+[source,java]
+----
+class B {
+    public void showPaper() {
+        A.show();
+    }
+}
+----
