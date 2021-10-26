@@ -1,0 +1,635 @@
+= Логирование
+:imagesdir: ../assets/img/logging
+
+*Логирование* — это запись куда-то данных о работе программы.
+Место, куда эти данные записываются называется «*лог*».
+
+== Основные понятия
+
+Если в работе сервера, компьютера или программного обеспечения возникла неизвестная ошибка, в первую очередь смотрят логи.
+*Лог* — *текстовый файл* с информацией о действиях программного обеспечения или пользователей, который хранится на компьютере или сервере.
+Это хронология событий и их источников, ошибок и причин, по которым они произошли.
+Читать и анализировать логи можно с помощью специального ПО.
+
+Другими словами, *логированием* называют запись логов.
+Оно позволяет ответить на вопросы, что происходило, когда и при каких обстоятельствах.
+Без логов сложно понять, из-за чего появляется ошибка, если она возникает периодически и только при определенных условиях.
+Чтобы облегчить задачу администраторам и программистам, в лог записывается информация не только об ошибках, но и о причинах их возникновения.
+Благодаря логам найденные ошибки можно быстро исправить.
+
+Отметим различия между «*логированием*» и «*логом*»:
+
+* *логирование* — это процесс, при котором программа прописывает какие-то записи в лог-файлы;
+* *лог* — это сам файл или то место, куда программа производит необходимые записи.
+
+=== Типы логов
+
+Для удобной работы с логами их делят на типы.
+Это помогает быстрее находить нужные и выбирать правильные инструменты для работы с ними.
+Например, выделяют:
+
+* системные логи, то есть те, которые связаны с системными событиями;
+* серверные логи, регистрирующие обращения к серверу и возникшие при этом ошибки;
+* логи баз данных, фиксирующие запросы к базам данных;
+* почтовые логи, относящиеся к входящим/исходящим письмам и отслеживающие ошибки, из-за которых письма не были доставлены;
+* логи авторизации;
+* логи аутентификации;
+* логи приложений, установленных на этих операционных системах.
+
+Также логи можно типизировать по степени их важности:
+
+* Fatal/critical error — то, что нужно срочно исправить.
+* Not critical error — ошибки, которые не влияют на пользователя.
+* Warning — предупреждения, то, на что нужно обратить внимание.
+* Initial information — информация о вызовах API сервиса, запросах в БД, вызовах других сервисов.
+
+== Уровень логирования
+
+Если в *лог-файл* записывать все действия программы, то там будет большое количество различных сведений.
+В некоторых ситуациях лог-файлы могут генерироваться очень быстро и в огромных размерах.
+В этом случае найти нужную информацию в логах будет очень нелегко.
+Поэтому, чтобы контролировать объемы записываемой информации, придумали различные уровни логирования.
+
+Различают несколько основных уровней логирования:
+
+* *OFF*: никакие логи не записываются, все будут проигнорированы;
+* *FATAL*: ошибка, после которой приложение уже не сможет работать и будет остановлено, например, *JVM out of memory error*;
+* *ERROR*: уровень ошибок, когда есть проблемы, которые нужно решить.
+Ошибка не останавливает работу приложения в целом.
+Остальные запросы могут работать корректно;
+* *WARN*: обозначаются логи, которые содержат предостережение.
+Произошло неожиданное действие, несмотря на это система устояла и выполнила запрос;
+* *INFO*: лог, который записывает важные действия в приложении.
+Это не ошибки, это не предостережение, это ожидаемые действия системы;
+* *DEBUG*: логи, необходимые для отладки приложения.
+Для уверенности в том, что система делает именно то, что от нее ожидают, или описания действия системы: “method1 начал работу”;
+* *TRACE*: менее приоритетные логи для отладки, с наименьшим уровнем логирования;
+* *ALL*: уровень, при котором будут записаны все логи из системы.
+
+Если в приложении в каком-то месте включен уровень логирования *INFO*, будут логироваться все уровни, начиная с *INFO* и до *FATAL*.
+Если будет уровень логирования *FATAL*, будут записаны *только логи с этим уровнем*.
+
+Для JUL имеет следующие уровни логирования:
+
+* FINEST,
+* FINER,
+* FINE,
+* CONFIG,
+* INFO,
+* WARNING,
+* SEVERE,
+* ALL,
+* OFF.
+
+«Поддержать» уровни логирования в *Java* можно двумя способами:
+
+* Внутри программы можно расставить вызов нужной библиотеки в соответствии с заданным уровнем.
+Например, если произойдет ошибка, она будет логироваться как «*error*» и т. д.
+* В момент запуска программы нужно указать уровень логирования для конкретной ситуации.
+Если ничего не указывать, то для программы будет применяться уровень «*info*», где будут записываться все ключевые и важные события, происходящие с программой, в том числе «*warning*» и «*error*».
+Если указать «*error*», будут записываться только ошибки.
+
+Логировать обязательно необходимо:
+
+* *Начало/конец работы приложения*.
+Нужно знать, что приложение действительно запустилось, как мы и ожидали, и завершилось так же ожидаемо.
+* *Вопросы безопасности*.
+Здесь хорошо бы логировать попытки подбора пароля, логирование входа важных юзеров и т.д.
+* Некоторые *состояния приложения*.
+Например, переход из одного состояния в другое в бизнес процессе.
+* Некоторая *информация для дебага*, с соответственным уровнем логирования.
+* *Некоторые SQL скрипты*.
+Есть реальные случаи, когда это нужно.
+Опять-таки, умелым образом регулируя уровни, можно добиться отличных результатов.
+* *Выполняемые нити (Thread)* могут быть логированы в случаях с проверкой корректной работы.
+
+Популярные ошибки в логировании:
+
+* Избыток логирования.
+Не стоит логировать каждый шаг, который чисто теоретически может быть важным.
+*Есть правило*: логи могут нагружать работоспособность не более, чем на 10%.
+Иначе будут проблемы с производительностью.
+* Логирование всех данных в один файл.
+Это приведет к тому, что в определенный момент чтение/запись в него будет очень сложной, не говоря о том, что есть ограничения по размеру файлов в определенных системах.
+* Использование неверных уровней логирования.
+У каждого уровня логирования есть четкие границы, и их стоит соблюдать.
+Если граница расплывчатая, можно договориться какой из уровней использовать.
+
+== Основные термины
+
+Логирование в *Java* включает в себя 3 основных термина:
+
+* *Logger* — это некий объект, который отвечает за запись информации в лог-файлы, опираясь на заданные уровни логирования.
+*Основная задача логгера* — не пропустить событие, которое нужно записать в *лог-файл*.
+* *Appender* — это конечная точка, куда «приходит» информация для логирования.
+В качестве appender могут выступать: *файл*, *база данных*, *консоль*, *сокет* и др.
+У appender нет каких-либо ограничений, куда записывать сообщения.
+Все ограничивается только вашими способностями.
+Если *Logger* — это начальная точка в логировании, то *Appender* — это конечная точка.
+При этом один *логгер* может содержать несколько *аппендеров* и наоборот.
+Чтобы изменить поведение *логгера по умолчанию*, нам нужно сконфигурировать свой *файловый аппендер*.
+* *Layout* — это формат, в котором выводятся сообщения.
+Форматирование сообщений напрямую зависит от используемой библиотеки при логировании.
+
+== Узлы логирования
+
+При создании логгера используется класс, но по итогу записывается полное имя класса с пакетами.
+Это делается, чтобы потом можно было разделить логирование на узлы, и для каждого узла настроить уровень логирования и аппендер.
+Например, имя класса: `com.github.romankh3.logginglecture.MainDemo` — в нем создался логгер.
+И вот таким образом его можно разделить на узлы логирования.
+
+Главный узел — нулевой *RootLogger*.
+Это узел, который принимает все логи всего приложения.
+
+image:logging-nodes.png[]
+
+Аппендеры настраивают свою работу именно на узлы логирования.
+
+== Конфигурация и использование
+
+=== Конфигурация
+
+В зависимости от используемой библиотеки, логгеры могут конфигурироваться различными способами.
+
+Например, *log4j* поддерживает конфигурирование двумя способами – через файл свойств и через xml-файл.
+Принято считать эти два способа равнозначными.
+При инициализации они ищутся в *classpath*, сначала *xml-файл*, потом *properties-файл*.
+Так что при наличии обоих рабочим будет именно *xml*.
+
+[source,xml]
+----
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+<log4j:configuration debug="false" xmlns:log4j="http://jakarta.apache.org/log4j/">
+    <appender name="ConsoleAppender" class="org.apache.log4j.ConsoleAppender">
+        <param name="Encoding" value="Cp866"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{ISO8601} [%-5p][%-16.16t][%32.32c] - %m%n" />
+        </layout>
+    </appender>
+    <root>
+        <priority value="ERROR"/>
+        <appender-ref ref="ConsoleAppender" />
+    </root>
+</log4j:configuration>
+----
+
+[source,properties]
+----
+log4j.debug = false
+log4j.rootLogger = ERROR, ConsoleAppender
+# CONSOLE appender customisation
+log4j.appender.ConsoleAppender = org.apache.log4j.ConsoleAppender
+log4j.appender.ConsoleAppender.encoding = Cp866
+log4j.appender.ConsoleAppender.layout = org.apache.log4j.PatternLayout
+log4j.appender.ConsoleAppender.layout.ConversionPattern = %d{ISO8601} [%-5p][%-16.16t][%32.32c] - %m%n
+# File appender customisation
+log4j.appender.FILE=org.apache.log4j.RollingFileAppender
+log4j.appender.FILE.File=./target/logging/logging.log
+log4j.appender.FILE.MaxFileSize=1MB log4j.appender.FILE.threshold=DEBUG log4j.appender.FILE.MaxBackupIndex=2 log4j.appender.FILE.layout=org.apache.log4j.PatternLayout log4j.appender.FILE.layout.ConversionPattern=[ %-5p] - %c:%L - %m%n
+----
+
+При конфигурировании мы можем выбрать куда будет производится запись, путь где будет лежать файл лога, количество файлов, их размеры.
+Более подробные описания конфигураций для различных реализаций будут приведены при описании этих реализаций.
+
+Ниже приведен пример конфигурации *log4j.properties*.
+
+[source,properties]
+----
+log4j.appender.CONSOLE=org.apache.log4j.ConsoleAppender
+----
+
+Эта строка говорит, что мы регистрируем аппендер *CONSOLE*, который использует реализацию `org.apache.log4j.ConsoleAppender`.
+Этот аппендер записывает данные в консоль.
+
+[source,properties]
+----
+log4j.appender.FILE=org.apache.log4j.RollingFileAppender
+----
+
+Этот аппендер записывает в файл.
+
+Когда у нас уже есть зарегистрированные аппендеры, мы можем определить, какой будет уровень логирования в узлах и какие аппендеры будут при этом использоваться.
+
+[source,properties]
+----
+log4j.rootLogger=DEBUG, CONSOLE, FILE
+----
+
+* `log4j.rootLogger` означает, что будем настраивать главный узел, в котором находятся все логи;
+* после знака равно первое слово говорит о том, с каким уровнем и выше будут записываться логи (в нашем случае это *DEBUG*);
+* далее после запятой указываются все аппендеры, которые будут использоваться.
+
+Чтобы настроить определенный узел логирования, нужно использовать такую запись:
+
+[source,properties]
+----
+log4j.logger.com.github.romankh3.logginglecture=TRACE, OWN, CONSOLE
+----
+
+где `log4j.logger.` используется для настройки определенного узла, в нашем случае это `com.github.romankh3.logginglecture.`.
+
+Настройка *CONSOLE* аппендера:
+
+[source,properties]
+----
+# CONSOLE appender customisation
+log4j.appender.CONSOLE=org.apache.log4j.ConsoleAppender
+log4j.appender.CONSOLE.threshold=DEBUG
+log4j.appender.CONSOLE.layout=org.apache.log4j.PatternLayout
+log4j.appender.CONSOLE.layout.ConversionPattern=[%-5p] : %c:%L : %m%n
+----
+
+Здесь мы видим, что можно задать уровень, с которого будет обрабатывать именно аппендер.
+Реальная ситуация: сообщение с уровнем *info* принял узел логирования и передал аппендеру, который к нему приписан, а вот уже аппендер, с уровнем *warn* и выше, лог этот принял, но ничего с ним не сделал.
+
+Далее нужно определиться с тем, какой шаблон будет в сообщении (*PatternLayout*).
+
+Пример настройки *FILE* аппендера:
+
+[source,properties]
+----
+# File appender customisation
+log4j.appender.FILE=org.apache.log4j.RollingFileAppender
+log4j.appender.FILE.File=./target/logging/logging.log
+log4j.appender.FILE.MaxFileSize=1MB
+log4j.appender.FILE.threshold=DEBUG
+log4j.appender.FILE.MaxBackupIndex=2
+log4j.appender.FILE.layout=org.apache.log4j.PatternLayout
+log4j.appender.FILE.layout.ConversionPattern=[ %-5p] - %c:%L - %m%n
+----
+
+Здесь можно настроить, в какой именно файл будут записываться логи.
+Запись идет в файл `logging.log`.
+
+[source,properties]
+----
+log4j.appender.FILE.File=./target/logging/logging.log
+----
+
+Чтобы не было проблем с размером файла, можно настроить максимальный: в данном случае — 1МБ.
+
+*MaxBackupIndex* — говорит о том, сколько будет таких файлов.
+Если создается больше этого числа, то первый файл будет удален.
+
+=== Использование
+
+Чтобы использовать логгер, необходимо его создать:
+
+[source,java]
+----
+org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ClassName.class);
+----
+
+Чтобы сделать запись в лог, можно использовать множество методов, которые показывают, с каким уровнем будут записи.
+
+[source,java]
+----
+logger.trace("Method 1 started with argument={}", argument);
+logger.debug("Database updated with script = {}", script);
+logger.info("Application has started on port = {}", port);
+logger.warn("Log4j didn't find log4j.properties.Please, provide them");
+logger.error("Connection refused to host = {}", host);
+----
+
+Также можно использовать метод `log()` и передать в него параметры.
+
+[source,java]
+----
+logger.log(Level.INFO, argument);
+----
+
+== Реализация (SLF4J/Log4J 2/Logback)
+
+Из известных решений по *логированию* в *Java* можно выделить:
+
+* *log4j* - Это первый набор инструментов для логирования Java, который появился еще в 1999-м году.
+Внутри себя имеет различные способы вывода логов, несколько форматов логирования и мн. др.
+Раньше данная библиотека активно применялась, но уже долгое время этот проект не развивается.
+* *JUL* — java.util.logging Имеет множество уровней логирования, например, только для отладки у этого инструмента есть в арсенале 3 отладочных уровня вместо одного стандартного.
+* *JCL* — jakarta commons logging
+* *Logback* был создан как альтернатива умирающему *log4j*, поэтому он вобрал в себя все лучшее из этого инструмента, при этом усовершенствовал некоторые показатели.
+* *SLF4J* — *simple logging facade for java*.
+Этот инструмент является оберткой над многими популярными логгерами, например: *logback*, *log4j*, *jul* и др., поэтому его рекомендуется использовать в паре с полноценной библиотекой для логирования.
+
+=== System.err.println
+
+Первоначально был, разумеется, *System.err.println* (вывод записи в консоль).
+Его и сейчас используют для быстрого получения лога при дебаге.
+
+=== Log4j2
+
+Для использования *log4j2* вам необходимо подключить библиотеки *log4j-api-2.x* и *log4j-core-2.x*.
+*Log4j* имеет несколько отличное от *JUL* именование уровней логирования: *TRACE*, *DEBUG*, *INFO*, *WARN*, *ERROR*, *FATAL*, а так же *ALL* и *OFF* включающий и отключающий все уровни соответственно.
+Логгер создается вызовом статического метода класса `org.apache.logging.log4j.Logger`:
+
+[source,java]
+----
+Logger log = LogManager.getLogger(LoggingLog4j.class);
+----
+
+Логгер умеет принимать помимо привычных нам *String*, *Object* и *Throwable* еще два новых типа — *MapMessage* и *Marker*.
+
+[source,java]
+----
+// Карта сообщений (напечатается как msg1="Сообщение 1” msg2="Сообщение 2”)
+MapMessage mapMessage = new MapMessage();
+mapMessage.put("msg1", "Сообщение 1");
+mapMessage.put("msg2", "Сообщение 2");
+// Маркер, объект по которому можно фильтровать сообщения
+Marker marker = MarkerManager.getMarker("fileonly");
+// Строковое сообщение
+String stringMessage = "Сообщение";
+// Строковое сообщение с параметрами
+String stringMessageFormat = "Сообщение {}, от {}";
+// Исключение
+Throwable throwable = new Throwable();
+// Объект
+Object object = new Object();
+----
+
+В классическом для логгеров стиле методы делятся на два типа: совпадающие с названием уровня логирования и методы `log`, принимающие уровень логирования в качестве параметра.
+
+[source,java]
+----
+log.info((marker, mapMessage, throwable); log.throwing(throwable);
+----
+
+[source,java]
+----
+log.log(Level.INFO, marker, stringMessage, throwable);
+log.throwing(Level.INFO, throwable);
+----
+
+Если не определить конфигурацию, то при запуске *log4j2* выдаст гневное сообщение, о том, что конфигурация не задана и будет печатать ваши сообщения на консоль уровнем не ниже *ERROR*.
+Конфигурация *log4j2* задается несколькими вариантами: *xml*, *json*, *yaml*.
+Стоит отметить, что со второй версии нет поддержки конфигурации из property файла.
+Файл с конфигурацией автоматически ищется *classpath*, должен иметь название *log4j2* и располагаться в пакете по умолчанию.
+
+Конфигурация *log4j2* состоит из описания логгеров, аппендеров и фильтров.
+
+Есть различные фильтра, в том числе и по маркерам:
+
+* BurstFilter
+* CompositeFilter
+* DynamicThresholdFilter
+* MapFilter
+* MarkerFilter
+* RegexFilter
+* StructuredDataFilter
+* ThreadContextMapFilter
+* ThresholdFilter
+* TimeFilter
+
+Имеется широкий круг классов аппендеров, в том числе асинхронные аппендеры и аппендеры оборачивающие группу других аппендеров.
+
+* AsyncAppender
+* ConsoleAppender
+* FailoverAppender
+* FileAppender
+* FlumeAppender
+* JDBCAppender
+* JMSAppender
+* JPAAppender
+* MemoryMappedFileAppender
+* NoSQLAppender
+* OutputStreamAppender
+* RandomAccessFileAppender
+* RewriteAppender
+* RollingFileAppender
+* RollingRandomAccessFileAppender
+* RoutingAppender
+* SMTPAppender
+* SocketAppender
+* SyslogAppender
+
+Стоит также заметить, что *log4j* может создавать множество различающихся аппендеров одного и того же класса, например несколько файловых аппендеров, которые пишут в разные файлы.
+Рассмотрим пример конфигурации, в которой объявлены два логгера (корневой и для нашего класса), первый из которых пишет в файл *log.log*, а второй пишет в *log2.log* с использованием фильтрации по маркер.
+
+Пример настройки конфигурации log4j.xml файла:
+
+[source,xml]
+----
+
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+    <!-- Секция аппендеров -->
+    <Appenders>
+        <!-- Файловый аппендер -->
+        <File name="file" fileName="log.log">
+            <PatternLayout>
+                <Pattern>%d %p %c{1.} [%t] %m %ex%n</Pattern>
+            </PatternLayout>
+        </File>
+        <!-- Файловый аппендер -->
+        <File name="file2" fileName="log2.log">
+            <!-- Фильтр по маркеру -->
+            <MarkerFilter marker="fileonly" onMatch="DENY" onMismatch="ACCEPT"/>
+            <PatternLayout>
+                <Pattern>%d %p %c{1.} [%t] %m %ex%n</Pattern>
+            </PatternLayout>
+        </File>
+    </Appenders>
+    <!-- Секция логгеров -->
+    <Loggers>
+        <!-- Корневой логгер -->
+        <Root level="trace">
+            <AppenderRef ref="file" level="DEBUG"/>
+        </Root>
+        <!-- Логгер нашего класса -->
+        <Logger name="logging.log4j.LoggingLog4j" level="info" additivity="false">
+            <AppenderRef ref="file2" level="INFO"/>
+        </Logger>
+    </Loggers>
+</Configuration>
+----
+
+=== Logback
+
+Данный фреймворк используется только в связке с оберткой *SLF4J*, которую мы будем рассматривать позднее.
+Для начала работы вам необходимы *logback-core-1.x* и *logback-classic-1.x.x*, а также *slf4j-api-1.x.x*.
+Взаимодействие с логгером мы будем осуществлять через *API* предоставляемый оберткой *SLF4J*.
+Уровни логирования совпадают с *log4j*.
+
+[source,java]
+----
+org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(LoggingLogback.class);
+----
+
+API позволяет выводить строковые сообщения, шаблоны строковых сообщений, исключения, а также использовать маркеры.
+
+[source,java]
+----
+// Строковое сообщение
+String stringMessage = "Сообщение";
+// Шаблон сообщения
+String stringMessageFormat = "Сообщение {} {}";
+// Ошибка
+Throwable throwable = new Throwable();
+// Маркер
+Marker marker = MarkerFactory.getMarker("marker");
+----
+
+Конфигурация ищется в *classpath* в следующем порядке:
+
+* Пытается найти *logback.groovy*
+* Иначе пытается найти *logback-test.xml*
+* Иначе пытается найти *logback.xml*
+* Иначе использует базовую конфигурацию — выводим сообщения на консоль
+
+Основными элементами конфигурации являются логгеры, аппендеры, лайауты, и фильтры.
+
+Имеются следующие фильтры:
+
+* Regular filters
+* LevelFilter
+* ThresholdFilter
+* EvaluatorFilter
+* Matchers
+* TurboFilters
+* CountingFilter
+
+Имеются следующие аппендеры:
+
+* OutputStreamAppender
+* ConsoleAppender
+* FileAppender
+* RollingFileAppender
+* SocketAppender and SSLSocketAppender
+* ServerSocketAppender and SSLServerSocketAppender
+* SMTPAppender
+* SyslogAppender
+* SiftingAppender
+* AsyncAppender
+
+Простой пример файла *logback.xml*:
+
+[source,xml]
+----
+
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!--Аппендеры -->
+    <!--Файловый аппендер -->
+    <appender name="file" class="ch.qos.logback.core.FileAppender">
+        <file>log.log</file>
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <Pattern>%date %level [%thread] %logger{10} [%file:%line] %msg%n</Pattern>
+        </layout>
+    </appender>
+    <!--Консольный аппендер -->
+    <appender name="sout" class="ch.qos.logback.core.ConsoleAppender">
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <Pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</Pattern>
+        </layout>
+    </appender>
+    <!-- Фильтры -->
+    <!-- Фильтр по маркеру -->
+    <turboFilter class="ch.qos.logback.classic.turbo.MarkerFilter">
+        <Marker>marker</Marker>
+        <OnMatch>DENY</OnMatch>
+    </turboFilter>
+    <!-- Логгеры -->
+    <!-- Корневой логгер -->
+    <root level="info">
+        <appender-ref ref="file" />
+    </root>
+    <!-- Логгер нашего класса -->
+    <logger name="logging.logback.LoggingLogback" level="info" >
+        <appender-ref ref="sout" />
+    </logger>
+</configuration>
+----
+
+=== SLF4J
+
+*SLF4J* является оберткой над *logback*, а также над *JUL*, *log4j*, или *JCL*, а также над любым логгером, который реализует ее интерфейс.
+Для работы с *SLF4J* нужны библиотека *slf4j-api-1.x.x* и реализация одного из логгеров либо заглушка.
+Как правило, реализации всех логгеров (кроме *logback*) поставляются вместе с SLF4J и имеют названия на подобии *slf4j-jcl-1.x*, *slf4j-log4j12-1.x*, *slf4j-nop-1.x* и т.п. Если в *classpath* не будет найдена реализация логгера (или заглушка nop) *SLF4J* гневно ругнется и работать откажется.
+Конфигурация соответственно будет искаться в зависимости от положенной в *classpath* реализации.
+*API SLF4J* было рассмотрено в реализации *logback*.
+
+В идеальном мире мы должны выводить сообщения через интерфейс обертки.
+Но реальный жестокий мир говорит о том, что всем нам приходится взаимодействовать со сторонними библиотеками или кодом, в которых используются другие логгеры и которые знать не знают о *SLF4J*.
+Что бы не подстраиваться под каждый логгер, а пустить все сообщения через одну реализацию интерфейса *SLF4J*, можно использовать *bridging*.
+В поставке обертки содержаться библиотеки *jcl-over-slf4j*, *log4j-over-slf4j* и *jul-to-slf4j*, которые переопределяют поведение соответствующих логгеров и перенаправляют сообщения в обертку.
+
+[source,java]
+----
+
+java.util.logging.Logger julLog = java.util.logging.Logger.getLogger("julLog");
+java.util.logging.Logger log4jLog = java.util.logging.Logger.getLogger("log4jLog");
+org.slf4j.Logger slf4jLog = org.slf4j.LoggerFactory.getLogger(LoggingSlf4j.class);
+
+julLog.info("Сообщение от jul");
+log4jLog.info("Сообщение от log4j");
+slf4jLog.info("Сообщение от slf4j");
+
+----
+
+Мы хотим, что бы сообщение от JUL записывались в один файл, от *log4j* в другой, а от *slf4j* выводились на консоль.
+В качестве реализации обертки будем использовать *logback*, конфигурация будет выглядеть следующим образом:
+
+[source,xml]
+----
+
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!--Аппендеры -->
+    <!--Файловый аппендер для JUL -->
+    <appender name="jul" class="ch.qos.logback.core.FileAppender">
+        <file>log_jul.log</file>
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <Pattern>%date %level [%thread] %logger{10} [%file:%line] %msg%n</Pattern>
+        </layout>
+    </appender>
+    <!--Файловый аппендер для log4j -->
+    <appender name="log4j" class="ch.qos.logback.core.FileAppender">
+        <file>log_log4j.log</file>
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <Pattern>%date %level [%thread] %logger{10} [%file:%line] %msg%n</Pattern>
+        </layout>
+    </appender>
+    <!--Консольный аппендер -->
+    <appender name="sout" class="ch.qos.logback.core.ConsoleAppender">
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <Pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</Pattern>
+        </layout>
+    </appender>
+    <!-- Логгеры -->
+    <!-- Корневой логгер -->
+    <root level="info" >
+        <appender-ref ref="sout" />
+    </root>
+    <!-- Логгер для jul -->
+    <logger name="julLog" additivity="false" >
+        <level value="trace" />
+        <appender-ref ref="jul" />
+    </logger>
+    <!-- Логгер для log4j -->
+    <logger name="log4jLog" additivity="false" >
+        <level value="trace" />
+        <appender-ref ref="log4j" />
+    </logger>
+</configuration>
+----
+
+Для того, что бы мост заработал необходимо выполнить код:
+
+[source,java]
+----
+SLF4JBridgeHandler.removeHandlersForRootLogger();
+SLF4JBridgeHandler.install();
+----
+
+== Links
+
+* link:https://javarush.ru/groups/posts/2388-logirovanie-chto-kak-gde-i-chem[Логирование: что, как, где и чем?]
+* link:https://javarush.ru/groups/posts/2293-zachem-nuzhno-logirovanie[Зачем нужно логирование]
+* link:https://habr.com/ru/post/113145/[Java Logging: история кошмара]
+* link:https://habr.com/ru/post/247647/[Java logging. Hello World]
+* link:https://codernet.ru/articles/drugoe/logirovanie_java_terminologiya_urovni_logirovaniya_log-fajlyi/[Логирование Java: терминология, уровни логирования, log-файлы]
+* link:https://coderlessons.com/tutorials/java-tekhnologii/vyuchi-slf4j/slf4j-kratkoe-rukovodstvo[SLF4J — Краткое руководство]
+* link:https://logging.apache.org/log4j/2.x/manual/appenders.html[Appenders]
+* link:http://skipy.ru/useful/logging.html#log4j_fa[Ведение лога приложения]
+* link:https://www.youtube.com/watch?v=j-i3NQiKbcc&t=2052s&ab_channel=JUG.ru[YouTube: Владимир Красильщик — Что надо знать о логировании прагматичному Java-программисту]
