@@ -1,0 +1,348 @@
+= Spring MVC
+:imagesdir: ../assets/img/spring/mvc
+
+*Spring MVC* – это фреймворк для создания *web*-приложений на *Java*, в основе которого лежит шаблон проектирования *MVC*.
+
+* *Spring MVC* — это старый добрый *MVC*-фреймворк, который позволяет довольно легко писать *web*-сайты или *web*-сервисы.
+* Он прекрасно интегрируется со множеством шаблонных библиотек и библиотек преобразования данных, а также с остальной частью экосистемы *Spring*, такой как *Spring Boot*.
+* Главным образом он позволяет вам сосредоточиться на написании своей бизнес-логики, не беспокоясь о стандартном коде сервлета, разборе *HTTP*-запросов/ответов и преобразовании данных.
+
+Паттерн *MVC* разделяет аспекты приложения (логику ввода, бизнес-логику и логику *UI*), обеспечивая при этом свободную связь между ними.
+
+* *Model* (Модель) инкапсулирует (объединяет) данные приложения, в целом они будут состоять из *POJO*.
+* *View* (Отображение, Вид) отвечает за отображение данных Модели, — как правило, генерируя *HTML*, которые мы видим в своём браузере.
+* *Controller* (Контроллер) обрабатывает запрос пользователя, создаёт соответствующую Модель и передаёт её для отображения в Вид.
+
+Рабочий процесс обработки запроса проиллюстрирован на следующей диаграмме:
+
+image:[]
+
+После получения *HTTP*-запроса *DispatcherServlet*  выполняет следующие действия.
+
+* После получения *HTTP*-запроса *DispatcherServlet* даёт указание объекту *HandlerMapping* (обработка связывания), который вызывает следующий объект.
+* *DispatcherServlet* посылает запрос контроллеру и вызывает соответствующие методы. Эти методы возвращают объект, в соответствии с бизнес-логикой метода и передают название (название ссылки) обратно в *DispatcherServlet*.
+* C помощью *ViewResolver*, *DispatcherServlet* подбирает необходимый вид для запроса.
+* Когда внешний вид сформирован, *DispatcherServlet* передаёт эти данные в модуль *View*, который обрабатывается браузером пользователя.
+
+== DispatcherServlet
+
+Вся логика работы *Spring MVC* построена вокруг *DispatcherServlet*.
+
+*DispatcherServlet* — полностью интегрированный сервлет в *Spring IoC* контейнер и таким образом получает доступ ко всем возможностям *Spring*.
+
+При обработке запросов используется паттерн `«pattern-savvy reader»`, который распознает *DispatcherServlet* как выражение из шаблона проектирования `«Front Controller»`.
+
+image:front-contreoller.png[]
+
+*DispatcherServlet* является основным контроллером *Spring MVC Application*. Все входящие веб-запросы проходят через *DispatcherServlet* перед обработкой отдельными контроллерами *Spring*, то есть классами, аннотированными с помощью аннотации `@Controller`.
+
+*DispatcherServlet* — это обычный сервлет (наследуется от базового класса *HttpServlet*). Как и любой другой сервлет, *DispatcherServlet* необходимо зарегистрировать и настроить. Сделать это можно или в файле *web.xml*
+
+[source,xml]
+----
+<web-app>
+    <servlet>
+        <servlet-name>SpringMVC</servlet-name>
+        <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>SpringMVC</servlet-name>
+        <url-pattern>*</url-pattern>
+    </servlet-mapping>
+</web-app>
+----
+
+Либо в *Java*-коде переопределив метод `onStartup()` интерфейса `WebApplicationInitializer` :
+
+[source,java]
+----
+public class WebInitializer implements WebApplicationInitializer {
+    @Override
+    public void onStartup(ServletContext servletContext) throws ServletException {
+        AnnotationConfigWebApplicationContext context = new AnnotationConfigWebApplicationContext();
+        context.register(WebConfiguration.class);
+        DispatcherServlet servlet = new DispatcherServlet(context);
+        ServletRegistration.Dynamic dispatcher = servletContext.addServlet("dispatcher", servlet);
+        dispatcher.setLoadOnStartup(1);
+        dispatcher.addMapping("/");
+    }
+}
+----
+
+`WebApplicationInitializer` — интерфейс, предоставляемый *Spring MVC*, который гарантирует инициализацию при старте контейнера.
+
+Сервлет диспетчера настроен как `load-on-startup = 1`, что означает, что этот сервлет должен создаваться контейнером сервлета при развертывании приложения, а не при получении запроса на этот запрос.
+
+== HandlerMapping
+
+Одним из важных интерфейсов в Spring является HandlerMapping.
+
+*DisptacherSevlet* с помощью *HandlerMapping* определяет какой контроллер он должен использовать для определенного запроса *request*.
+
+image:schema-springMVC-detail.png[]
+
+По определению *HandlerMapping* — интерфейс, который реализуется объектами, которые определяют отображение между запросами и объектами обработчиков.
+
+Реализации *HandlerMapping* могут поддерживать перехватчики (*interceptors*), но не содержат их. Обработчик будет всегда обернут в экземпляре *HandlerExecutionChain*, возможно в сопровождении некоторых экземпляров *HandlerInterceptor*. *DispatcherServlet* сначала вызывает  метод preHandle каждого *HandlerInterceptor* в заданном порядке, и в конце, внедряет обработчик, если все методы `preHandle` вернули *true*.
+
+Возможность параметризации такого отображения является мощной и необычной способностью в рамках *MVC* фреймворка. Например, можно написать пользовательское отображение на основе состояния сеанса, состояние *cookie* или многих других переменных.
+
+По умолчанию интерфейс *HandlerMapping* в *Spring MVC* реализуется классом *RequestMappingHandlerMapping*. Существуют другие реализации интерфейса, которые используют другие параметры для поиска контроллера, соответствующего запросу. В *Spring MVC* вы можете встретить реализацию интерфейса, когда применяете аннотацию `@RequestMapping`
+
+[source,java]
+----
+@RequestMapping(value = "/", method = RequestMethod.GET)
+public class Main{
+    public ModelAndView main() {
+        ModelAndView modelAndView = new ModelAndView();
+        return modelAndView;
+    }
+}
+----
+
+== Controller
+
+*DispatcherServlet* отправляет запрос контроллерам для выполнения определённых функций.
+
+image:RequestLifecycle.png[]
+
+Аннотации `@Controller` или `@RestController` указывают, что конкретный класс является контроллером. Аннотация `@RestController` равна одновременно `@Controller + @ResponseBody`.
+
+`@ResponseBody` - дает фреймворку понять, что объект, который вы вернули из метода надо прогнать через `HttpMessageConverter`, чтобы получить готовое к отправке на клиент представление.
+
+Аннотация `@RequestMapping` используется для мапинга (связывания) с *URL* для всего класса или для конкретного метода обработчика.
+
+[source,java]
+----
+@Controller
+@RequestMapping("/hello")
+public class HelloController {
+   @RequestMapping(method = RequestMethod.GET)
+   public String printHello(ModelMap model) {
+      model.addAttribute("message", "Hello Spring MVC Framework!");
+      return "hello";
+   }
+}
+----
+
+В первом случае, `@RequestMapping` указывает, что все методы в данном Контроллере относятся к *URL*-адресу `"/hello"`, а во втором как дефолтного метода для обработки *HTTP*-запросов *GET* (в данном Контроллере). Также можно данную аннотацию объявить над методом `@RequestMapping(value = "/hello", method = RequestMethod.GET)`.
+
+Также в контроллере может использоваться аннотация `@ModelAttribute`, которая ставится над методом или в аргументах методов.
+
+[source,java]
+----
+@Controller
+public class HelloController {
+    @RequestMapping("/processForm")
+    public String processForm(@ModelAttribute("student") Student theStudent){
+        System.out.println("theStudent :"+ theStudent.getLastName());
+        return "form-details";
+    }
+
+    @ModelAttribute("object")
+    public Object checkOptions(){
+        return new Object();
+    }
+}
+----
+
+[source,html]
+----
+<form:form action="processForm" modelAttribute="student">
+    First Name : <form:input path="firstName" />
+    <br><br>
+    Last Name : <form:input path="lastName" />
+    <br><br>
+    <input type="submit" value="submit"/>
+</form:form>
+----
+
+В зависимости от места ее применения, работать она будет по-разному. В первом случае она позволяет связать *html*-форму с *java*-объектом. А во-втором случае добавит в модель каждого метода контроллера объект с ключ-значением - `"object":new Object()`.
+
+Часто используются аннотации `@RequestParam` и `@PathVariable`.
+
+[source,java]
+----
+@Controller
+@RequestMapping("api/test")
+public class HelloController {
+    @GetMapping(path = "/filter")
+    public Test getByFilter(@RequestParam(name = "text", required = false) String text) {
+        return testService.getByFilter(filterTest);
+    }
+
+    @GetMapping(path = "/{id}")
+    @ResponseBody
+    public Test findById(@PathVariable String id) {
+        return testService.findById(id);
+    }
+}
+----
+
+При использовании `@RequestParam` передача значений будет типа `http://localhost:8080/api/test/filter?id=abc`. В этом случае данный параметр является не обязательным, но при установке атрибута `required = true` (по умолчанию *false*) станет обязательным для заполнения.
+
+При использовании `@PathVariable` передача значений будет типа `http://localhost:8080/api/test/abc`. В этом случае данный параметр является обязательным, но при установке атрибута `required = false` (по умолчанию *true*) станет не обязательным для заполнения.
+
+== ViewResolver
+
+*DisptacherServlet* с помощью *ViewResolver* определяет какое представление необходимо использовать на основании полученного имени.
+
+*ViewResolver* — интерфейс, реализуемый объектами, которые способны находить представления *View* по имени *View Name*
+
+*Spring MVC* поддерживает множество типов *View* для различных технологий отображения страницы. В том числе — *JSP*, *HTML*, *PDF*, *Excel*, *XML*, *Velocity* *templates*, *XSLT*, *JSON,* каналы *Atom* и *RSS*, *JasperReports* и другие.
+
+По умолчанию реализацией интерфейса *ViewResolver* является класс `InternalResourceViewResolver`. Также могут использоваться `FreeMarkerViewResolver`, `BeanNameViewResolver`, `ResourceBundleViewResolver`, `TilesViewResolver` и многие другие.
+
+[source,java]
+----
+@Configuration
+public class WebConfiguration{
+    @Bean
+    public InternalResourceViewResolver internalResourceViewResolver(){
+        InternalResourceViewResolver resolver = new InternalResourceViewResolver();
+        resolver.setPrefix("/WEB-INF/views/");
+        resolver.setSuffix(".jsp");
+        return resolver;
+    }
+}
+----
+
+После того как в модель *modelAndView* было записано имя представления `viewName = ‘index’` и произошел выход из метода, то в действие включается *ViewResolver*. Для этого примера согласно настройкам в класс InternalResourceViewResolver будет искать представление с именем index, у которого префикс `/WEB-INF/views/`, а суффикс `.jsp`. Другими словами он должен найти представление с именем `/WEB-INF/views/index.jsp`.
+
+image:prefix-suffix.png[]
+
+[source,java]
+----
+public class Main{
+    @RequestMapping(value = "/", method = RequestMethod.GET)
+    public ModelAndView main() {
+        ModelAndView modelAndView = new ModelAndView();
+        modelAndView.addObject("userJSP", new User());
+        modelAndView.setViewName("index");
+        return modelAndView;
+    }
+}
+----
+
+[source,html]
+----
+<html>
+   <head>
+      <title>Hello Spring MVC</title>
+   </head>
+
+   <body>
+      <h2>${userJSP}</h2>
+   </body>
+</html>
+----
+
+В данном случае, переменная `${userJSP}` выводит тот самый атрибут, установленный нами в Контроллере. Внутри Вида Вы можете отобразить любое количество атрибутов.
+
+Если представление найдено, то произойдет переход на эту страницу. В противном случае результат зависит от настроек реализации интерфейса *ViewResolver*. По умолчанию возвращается *null*, но можно возвращать имя или исключение, если вам это необходимо.
+
+== ExceptionHandler
+
+Для обработки ошибки существует три варианта: для каждого исключения, для каждого контроллера или глобально.
+
+=== Уровень контроллера
+
+Изначально основными способами обработки исключений в приложении были `HandlerExceptionResolver` и аннотация   `@ExceptionHandler`, которая позволяла обрабатывать исключения на уровне отдельного контроллера. Для этого достаточно было объявить метод, в котором будет содержаться вся логика обработки нужного исключения, и проаннотировать его.
+
+[source,java]
+----
+@RestController
+public class ExampleController {
+    @GetMapping(value = "/testExceptionHandler", produces = APPLICATION_JSON_VALUE)
+    public Response testExceptionHandler() throws BusinessException {
+        throw new BusinessException("BusinessException in testExceptionHandler");
+    }
+
+    @ExceptionHandler(BusinessException.class)
+    public Response handleException(BusinessException e) {
+        return new Response(e.getMessage());
+    }
+}
+----
+
+Метод `handleException` предназначен для обработки ошибок. У него есть аннотация `@ExceptionHandler(BusinessException.class)`, которая говорит о том, что для последующей обработки будут перехвачены все исключения типа `BusinessException`. В аннотации `@ExceptionHandler` можно прописать сразу несколько типов исключений, например так: `@ExceptionHandler({BusinessException.class, ServiceException.class})`.
+
+Основной недостаток `@ExceptionHandler` в том что он определяется для каждого контроллера отдельно, а не глобально для всего приложения.
+
+Также, на уровне контроллера можно формировать ответ путём выброса исключения `ResponseStatusException`.
+
+[source,java]
+----
+@RestController
+public class ExampleController {
+    @GetMapping(value = "/testResponseStatusException", produces = APPLICATION_JSON_VALUE)
+    public Response testResponseStatusException() {
+        throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "ResponseStatusException in testResponseStatusException");
+    }
+}
+----
+
+Выбрасывая `ResponseStatusException` можно также возвращать пользователю определённый код статуса, в зависимости от того, что произошло в логике приложения. При этом не нужно создавать кастомное исключение и прописывать аннотацию `@ResponseStatus`
+
+=== Уровень исключений
+
+Для обработки ошибок на уровне исключений используется `ResponseStatusExceptionResolver`. Он позволяет настроить код ответа для любого исключения с помощью аннотации `@ResponseStatus`.
+
+[source,java]
+----
+@ResponseStatus(value = HttpStatus.INTERNAL_SERVER_ERROR)
+public class ServiceException extends Exception {
+    public ServiceException(String message) {
+        super(message);
+    }
+}
+----
+
+[source,java]
+----
+@RestController
+public class ExampleController {
+    @GetMapping(value = "/testResponseStatusExceptionResolver", produces = APPLICATION_JSON_VALUE)
+    public Response testResponseStatusExceptionResolver() throws ServiceException {
+        throw new ServiceException("ServiceException in testResponseStatusExceptionResolver");
+    }
+}
+----
+
+Из недостатков такого подхода — как и в предыдущем случае отсутствует тело ответа.
+
+=== Уровень глобальной обработки
+
+Глобально и централизованно обрабатывать исключения с помощью классов с аннотацией `@ControllerAdvice`.
+
+[source,java]
+----
+@ControllerAdvice
+public class DefaultAdvice {
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<Response> handleException(BusinessException e) {
+        Response response = new Response(e.getMessage());
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+}
+----
+
+Любой класс с аннотацией `@ControllerAdvice` является глобальным обработчиком исключений, который очень гибко настраивается. Метод `handleException` имеет аннотацию `@ExceptionHandler`, в которой можно определить список обрабатываемых исключений.
+
+Так же можно в рамках эдвайса сделать сразу несколько методов с аннотациями `@ExceptionHandler` для обработки разных исключений.
+
+== Links
+
+* link:https://docs.spring.io/spring-framework/docs/3.2.x/spring-framework-reference/html/mvc.html[Web MVC framework]
+* link:https://habr.com/ru/post/336816/[Spring MVC — основные принципы]
+* link:https://habr.com/ru/post/500572/[Spring MVC: создание веб-сайтов и RESTful сервисов]
+* link:https://habr.com/ru/post/528116/[Обработка исключений в контроллерах Spring]
+* link:https://javastudy.ru/spring-mvc/spring-mvc-basic/[Spring MVC — основные понятия, архитектура]
+* link:https://javastudy.ru/spring-mvc/spring-mvc-webapplicationcontext/[Spring MVC — WebApplicationContext. Описание интерфейса]
+* link:https://javastudy.ru/spring-mvc/spring-mvc-handler-mapping/[Spring MVC — Handler Mapping. Описание интерфейса HandlerMapping]
+* link:https://javastudy.ru/spring-mvc/spring-mvc-viewresolver/[Spring MVC — описание интерфейса ViewResolver]
+* link:https://proselyte.net/tutorials/spring-tutorial-full-version/spring-mvc-framework/[Руководство по Spring. Spring MVC Framework (основы)]
+* link:https://www.youtube.com/watch?v=1vyf-_5OkW8&list=PLAma_mKffTOR5o0WNHnY0mTjKxnCgSXrZ&index=14&t=1s&ab_channel=alishev[YouTube: Spring Framework. Урок 14: Spring MVC. Теория.]
+* link:https://www.youtube.com/watch?v=JHTqKQgrVKE&list=PLAma_mKffTOR5o0WNHnY0mTjKxnCgSXrZ&index=18&ab_channel=alishev[YouTube: Spring Framework. Урок 17: Контроллеры. Аннотация @Controller.]
+* link:https://www.youtube.com/watch?v=w1FjeTZxQrQ&ab_channel=alishev[YouTube: Spring Framework. Урок 22: Аннотация @ModelAttribute. HTML Формы (Thymeleaf).]
